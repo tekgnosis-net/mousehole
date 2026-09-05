@@ -6,9 +6,9 @@
   "main": "src/index.ts",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "concurrently --names server,web --prefix-colors blue,magenta \"bun dev:server\" \"bun dev:web\"",
+    "dev": "concurrently --names app,vite-assets --prefix-colors blue,magenta \"bun dev:server\" \"bun dev:web\"",
     "dev:server": "PUBLIC_GIT_HASH=$(git rev-parse --short HEAD) bun run --watch --no-clear-screen src/index.ts",
-    "dev:web": "vite",
+    "dev:web": "vite --logLevel warn",
     "build": "vite build",
     "start": "PUBLIC_GIT_HASH=$(git rev-parse --short HEAD) NODE_ENV=production bun src/index.ts",
     "preview": "bun run build && bun run start",

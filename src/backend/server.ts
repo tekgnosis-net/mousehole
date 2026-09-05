@@ -52,7 +52,9 @@ export function startServer(
     fetch: (request) => app.fetch(request),
   });
 
-  logger.info(`Mousehole v${version} (${gitHash}) running at ${server.url}`);
+  const appUrl =
+    env.NODE_ENV === "production" ? "" : ` at ${new URL("/web", server.url)}`;
+  logger.info(`Mousehole v${version} (${gitHash}) started${appUrl}`);
   validateRuntimeSecurityConfig(
     config.auth,
     config.allowedHosts,
