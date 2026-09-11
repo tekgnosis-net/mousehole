@@ -1,7 +1,6 @@
 import type { Config } from "./config.ts";
-import type { FetchLike } from "./external-api/fetch.ts";
-
 import { createContactScheduler, type ContactScheduler } from "./contact.ts";
+import type { FetchLike } from "./external-api/fetch.ts";
 import { createSessionStore, type SessionStore } from "./session.ts";
 import { createSseRegistry, type SseRegistry } from "./sse.ts";
 import { StateFileStore, type StateStore } from "./state/store.ts";

@@ -1,6 +1,5 @@
-import type { ComponentPropsWithRef } from "react";
-
 import { cva, type VariantProps } from "class-variance-authority";
+import type { ComponentPropsWithRef } from "react";
 
 import { cn } from "#frontend/lib/cn.ts";
 
@@ -25,6 +24,6 @@ export function Link({
   variant,
   ...props
 }: Readonly<ComponentPropsWithRef<"a"> & VariantProps<typeof linkVariants>>) {
-  // eslint-disable-next-line jsx-a11y/anchor-has-content
+  // oxlint-disable-next-line jsx-a11y/anchor-has-content
   return <a className={cn(linkVariants({ variant, className }))} {...props} />;
 }

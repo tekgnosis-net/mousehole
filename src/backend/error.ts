@@ -30,7 +30,10 @@ export class FileReadError extends MouseholeError {
   constructor(path: string, { cause }: { cause: Error }) {
     super(
       `Error reading file: ${path}. Check that it is readable and is not a directory.`,
-      { cause, httpStatus: 500 },
+      {
+        cause,
+        httpStatus: 500,
+      },
     );
     this.name = "FileReadError";
     this.errorType = "file-read-error";
@@ -41,7 +44,10 @@ export class FileWriteError extends MouseholeError {
   constructor(path: string, { cause }: { cause: Error }) {
     super(
       `Error writing file: ${path}. Check that the parent directory exists and is writable.`,
-      { cause, httpStatus: 500 },
+      {
+        cause,
+        httpStatus: 500,
+      },
     );
     this.name = "FileWriteError";
     this.errorType = "file-write-error";

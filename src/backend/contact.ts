@@ -2,15 +2,14 @@ import type { Temporal } from "temporal-polyfill";
 
 import { getNowZdt } from "#shared/time.ts";
 
-import type { FetchLike } from "./external-api/fetch.ts";
-import type { StateStore } from "./state/store.ts";
-
 import { toErrorResponseArgs } from "./error.ts";
+import type { FetchLike } from "./external-api/fetch.ts";
 import { getHostInfo, type HostInfo } from "./external-api/host-info.ts";
 import { updateMamIp, type MamUpdateResult } from "./external-api/mam.ts";
 import { logger } from "./logger.ts";
 import { Mutex } from "./mutex.ts";
 import { type MamContact, type State } from "./state/serde.ts";
+import type { StateStore } from "./state/store.ts";
 
 type BackgroundTask = {
   nextContactTimeoutId: ReturnType<typeof setTimeout>;

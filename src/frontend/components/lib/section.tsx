@@ -1,6 +1,5 @@
-import type { PropsWithChildren, Ref } from "react";
-
 import { motion } from "motion/react";
+import type { PropsWithChildren, Ref } from "react";
 
 import { cn } from "#frontend/lib/cn.ts";
 

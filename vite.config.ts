@@ -1,7 +1,8 @@
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
 import { execSync } from "node:child_process";
 import path from "node:path";
+
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // Prefer the environment (Docker build arg), fall back to git (local dev and

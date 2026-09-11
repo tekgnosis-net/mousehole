@@ -7,7 +7,7 @@ const { stop } = startServer();
 
 async function shutdown() {
   await stop();
-  // eslint-disable-next-line unicorn/no-process-exit
+  // oxlint-disable-next-line unicorn/no-process-exit
   process.exit(0);
 }
 

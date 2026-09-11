@@ -5,7 +5,6 @@ import { serveStatic } from "hono/bun";
 import { proxy } from "hono/proxy";
 
 import type { AppContext } from "#backend/context.ts";
-
 import { toErrorResponseArgs } from "#backend/error.ts";
 import { handlePutCookie } from "#backend/handlers/cookie.ts";
 import { handleGetHealth } from "#backend/handlers/health.ts";

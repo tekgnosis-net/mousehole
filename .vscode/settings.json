@@ -1,4 +1,4 @@
 {
   "tailwindCSS.classFunctions": ["cva"],
-  "eslint.runtime": "node"
+  "biome.enabled": false
 }

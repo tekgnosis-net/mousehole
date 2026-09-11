@@ -8,9 +8,10 @@
 //   bun demo --no-build    skip the production build (reuse dist/)
 //   bun demo --port 6000   serve on a different port (default 5011)
 
-import { cac } from "cac";
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
+
+import { cac } from "cac";
 
 import { StateFileStore } from "#backend/state/store.ts";
 
@@ -49,7 +50,7 @@ function selectFixture(): Fixture {
     console.error(name ? `Unknown fixture "${name}".` : "Pass a fixture name.");
     console.error("\nAvailable fixtures:");
     listFixtures();
-    // eslint-disable-next-line unicorn/no-process-exit
+    // oxlint-disable-next-line unicorn/no-process-exit
     process.exit(1);
   }
   return fixture;
@@ -121,7 +122,7 @@ async function main(): Promise<void> {
   const shutdown = (): void => {
     console.log("\nStopping...");
     void server.stop().finally(() =>
-      // eslint-disable-next-line unicorn/no-process-exit
+      // oxlint-disable-next-line unicorn/no-process-exit
       process.exit(0),
     );
   };

@@ -27,13 +27,13 @@
  *   bun forum-post/gen-html.ts --watch  # rebuild on change
  */
 
-import type { Root as MdastRoot } from "mdast";
-
-import matter from "gray-matter";
-import juice from "juice";
 import { watch } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+
+import matter from "gray-matter";
+import juice from "juice";
+import type { Root as MdastRoot } from "mdast";
 import rehypeRaw from "rehype-raw";
 import rehypeStringify from "rehype-stringify";
 import remarkDirective from "remark-directive";

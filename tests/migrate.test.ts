@@ -128,7 +128,7 @@ describe("migrateToCurrent", () => {
   });
 
   describe("non-object input", () => {
-    // eslint-disable-next-line unicorn/no-null -- JSON.parse("null") yields null
+    // oxlint-disable-next-line unicorn/no-null -- JSON.parse("null") yields null
     test.each([null, undefined, "string", 42])(
       "yields no cookie for %p",
       (input) => {

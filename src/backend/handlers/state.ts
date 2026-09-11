@@ -1,7 +1,6 @@
 import type { AppContext } from "#backend/context.ts";
-import type { PublicState } from "#shared/public-state.ts";
-
 import { toPublicState, type State } from "#backend/state/serde.ts";
+import type { PublicState } from "#shared/public-state.ts";
 
 // Builds the public view of state with the server-derived fields filled in. Shared
 // by every endpoint that returns state (GET /state, PUT /cookie, POST /updates).
