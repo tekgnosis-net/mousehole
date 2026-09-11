@@ -1,5 +1,4 @@
 import type { AuthConfig } from "../src/backend/config.ts";
-
 import { handlePostLogin } from "../src/backend/handlers/login.ts";
 
 // The handler only needs `create` from the session store.

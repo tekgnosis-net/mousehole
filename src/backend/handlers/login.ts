@@ -1,11 +1,9 @@
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-
 import * as z from "zod";
 
 import type { AuthConfig } from "#backend/config.ts";
-import type { SessionStore } from "#backend/session.ts";
-
 import { safeEqual } from "#backend/http-boundary.ts";
+import type { SessionStore } from "#backend/session.ts";
 
 const loginBodySchema = z.object({
   password: z.string(),

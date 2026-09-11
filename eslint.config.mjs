@@ -1,14 +1,14 @@
 // @ts-check
 
+import eslintReact from "@eslint-react/eslint-plugin";
 import eslint from "@eslint/js";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import perfectionist from "eslint-plugin-perfectionist";
+import reactHooks from "eslint-plugin-react-hooks";
 import unicornPlugin from "eslint-plugin-unicorn";
 import { defineConfig } from "eslint/config";
-import tseslint from "typescript-eslint";
-import eslintReact from "@eslint-react/eslint-plugin";
 import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import jsxA11y from "eslint-plugin-jsx-a11y";
+import tseslint from "typescript-eslint";
 
 export default defineConfig(
   {

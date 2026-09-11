@@ -1,14 +1,12 @@
 import type { Context } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
-
 import { createMiddleware } from "hono/factory";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 import type {
   AllowedOriginsConfig,
   AuthConfig,
   AllowedHostsConfig,
 } from "./config.ts";
-
 import { extractSessionId } from "./session.ts";
 
 type HostAndPort = {

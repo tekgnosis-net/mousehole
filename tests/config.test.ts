@@ -354,7 +354,10 @@ describe("MOUSEHOLE_INSECURE_ALLOW_NO_AUTH is exclusive with credentials", () =>
   test("allow-no-auth alone is still fine", () => {
     expect(
       buildConfig({ MOUSEHOLE_INSECURE_ALLOW_NO_AUTH: "true" }).auth,
-    ).toEqual({ type: "none", insecureAllowNoAuth: true });
+    ).toEqual({
+      type: "none",
+      insecureAllowNoAuth: true,
+    });
   });
 });
 
@@ -369,13 +372,19 @@ describe("MOUSEHOLE_ALLOWED_HOSTS", () => {
     expect(
       buildConfig({ MOUSEHOLE_ALLOWED_HOSTS: "example.com,10.0.0.1" })
         .allowedHosts,
-    ).toEqual({ type: "allowlist", hosts: ["example.com", "10.0.0.1"] });
+    ).toEqual({
+      type: "allowlist",
+      hosts: ["example.com", "10.0.0.1"],
+    });
   });
 
   test("single entry yields allowlist", () => {
     expect(
       buildConfig({ MOUSEHOLE_ALLOWED_HOSTS: "example.com" }).allowedHosts,
-    ).toEqual({ type: "allowlist", hosts: ["example.com"] });
+    ).toEqual({
+      type: "allowlist",
+      hosts: ["example.com"],
+    });
   });
 
   test("trims whitespace around entries", () => {

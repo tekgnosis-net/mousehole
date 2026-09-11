@@ -1,8 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 
-import type { PublicState } from "#shared/public-state.ts";
-
 import { useErrors } from "#frontend/contexts/error.tsx";
+import type { PublicState } from "#shared/public-state.ts";
 
 import { useStateActions } from "./state";
 

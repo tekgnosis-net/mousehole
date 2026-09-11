@@ -1,9 +1,8 @@
 import * as z from "zod";
 
 import type { AppContext } from "#backend/context.ts";
-import type { PublicState } from "#shared/public-state.ts";
-
 import { JSONParseError, SchemaError, toError } from "#backend/error.ts";
+import type { PublicState } from "#shared/public-state.ts";
 
 import { makePublicState } from "./state.ts";
 

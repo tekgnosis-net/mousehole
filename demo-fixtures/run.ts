@@ -8,9 +8,10 @@
 //   bun demo --no-build    skip the production build (reuse dist/)
 //   bun demo --port 6000   serve on a different port (default 5011)
 
-import { cac } from "cac";
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
+
+import { cac } from "cac";
 
 import { StateFileStore } from "#backend/state/store.ts";
 

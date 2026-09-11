@@ -1,10 +1,7 @@
 import type { MiddlewareHandler } from "hono";
-
 import { Hono } from "hono";
 
 import type { SessionAuthValidator } from "../src/backend/http-boundary.ts";
-import type { ErrorResponseBody } from "../src/shared/error-response.ts";
-
 import {
   hostAllowed,
   originAllowed,
@@ -12,6 +9,7 @@ import {
   requireJsonBody,
 } from "../src/backend/http-boundary.ts";
 import { SESSION_COOKIE_NAME } from "../src/backend/session.ts";
+import type { ErrorResponseBody } from "../src/shared/error-response.ts";
 import { json } from "./lib/helpers.ts";
 
 // The boundary consults the session store only through this function, so the
@@ -93,7 +91,9 @@ describe("requireAuth", () => {
   test("passes a valid Bearer token through to the handler", async () => {
     const response = await probeApp(tokenAuth).request(
       "http://localhost/probe",
-      { headers: { Authorization: "Bearer api-token" } },
+      {
+        headers: { Authorization: "Bearer api-token" },
+      },
     );
 
     await expectOk(response);
@@ -102,7 +102,9 @@ describe("requireAuth", () => {
   test("rejects a wrong Bearer token with 401 and a challenge", async () => {
     const response = await probeApp(tokenAuth).request(
       "http://localhost/probe",
-      { headers: { Authorization: "Bearer wrong-token" } },
+      {
+        headers: { Authorization: "Bearer wrong-token" },
+      },
     );
 
     expect(response.headers.get("www-authenticate")).toBe(
@@ -119,7 +121,9 @@ describe("requireAuth", () => {
 
     const response = await probeApp(passwordOnly).request(
       "http://localhost/probe",
-      { headers: { Authorization: "Bearer api-token" } },
+      {
+        headers: { Authorization: "Bearer api-token" },
+      },
     );
 
     expect(response.status).toBe(401);
@@ -133,7 +137,9 @@ describe("requireAuth", () => {
 
     const response = await probeApp(sessionAuth).request(
       "http://localhost/probe",
-      { headers: { Cookie: `${SESSION_COOKIE_NAME}=some-session` } },
+      {
+        headers: { Cookie: `${SESSION_COOKIE_NAME}=some-session` },
+      },
     );
 
     await expectOk(response);
@@ -147,7 +153,9 @@ describe("requireAuth", () => {
 
     const response = await probeApp(sessionAuth).request(
       "http://localhost/probe",
-      { headers: { Cookie: `${SESSION_COOKIE_NAME}=not-a-real-session` } },
+      {
+        headers: { Cookie: `${SESSION_COOKIE_NAME}=not-a-real-session` },
+      },
     );
 
     await expectRejection(response, 401, "authentication-required");
@@ -248,7 +256,10 @@ describe("originAllowed", () => {
   ])("$name", async ({ middleware, origin, expected }) => {
     const response = await probeApp(middleware).request(
       "http://localhost/probe",
-      { method: "PUT", headers: { Origin: origin } },
+      {
+        method: "PUT",
+        headers: { Origin: origin },
+      },
     );
 
     await (expected.status === 200
@@ -390,7 +401,10 @@ describe("multi-middleware compositions", () => {
 
     const response = await probeApp(optOut, sameOrigin).request(
       "http://localhost/probe",
-      { method: "PUT", headers: { Origin: "http://evil.example" } },
+      {
+        method: "PUT",
+        headers: { Origin: "http://evil.example" },
+      },
     );
 
     expect(response.status).toBe(403);

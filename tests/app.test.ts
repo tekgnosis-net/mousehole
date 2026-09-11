@@ -1,9 +1,12 @@
+import { parseSetCookie } from "set-cookie-parser";
 import type { MockInstance } from "vitest";
 
-import { parseSetCookie } from "set-cookie-parser";
-
+import { createApp } from "../src/backend/app.ts";
+import { buildConfig } from "../src/backend/config.ts";
 import type { AppContext } from "../src/backend/context.ts";
+import { createAppContext } from "../src/backend/context.ts";
 import type { FetchLike } from "../src/backend/external-api/fetch.ts";
+import { SESSION_COOKIE_NAME } from "../src/backend/session.ts";
 import type { State } from "../src/backend/state/serde.ts";
 import type { StateStore } from "../src/backend/state/store.ts";
 import type { ErrorResponseBody } from "../src/shared/error-response.ts";
@@ -13,13 +16,8 @@ import type {
   PublicState,
   SerializedMamContact,
 } from "../src/shared/public-state.ts";
-import type { MamUpdateOutcome } from "./lib/mam-test-server.ts";
-
-import { createApp } from "../src/backend/app.ts";
-import { buildConfig } from "../src/backend/config.ts";
-import { createAppContext } from "../src/backend/context.ts";
-import { SESSION_COOKIE_NAME } from "../src/backend/session.ts";
 import { json } from "./lib/helpers.ts";
+import type { MamUpdateOutcome } from "./lib/mam-test-server.ts";
 import { createMamTestServer } from "./lib/mam-test-server.ts";
 
 type TestApp = ReturnType<typeof createApp>;

@@ -1,10 +1,9 @@
-import type { RequireAtLeastOne } from "type-fest";
-
 import { readFileSync } from "node:fs";
+
+import type { RequireAtLeastOne } from "type-fest";
 import * as z from "zod";
 
 import type { LogLevelName } from "#backend/logger.ts";
-
 import { DEFAULT_LOG_LEVEL, LOG_LEVEL_NAMES } from "#backend/logger.ts";
 
 export type AuthConfig =

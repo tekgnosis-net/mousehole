@@ -1,10 +1,13 @@
 {
   "name": "mousehole",
   "version": "0.5.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "main": "src/index.ts",
   "module": "src/index.ts",
+  "imports": {
+    "#*": "./src/*"
+  },
   "scripts": {
     "dev": "concurrently --names server,web --prefix-colors blue,magenta \"bun dev:server\" \"bun dev:web\"",
     "dev:server": "PUBLIC_GIT_HASH=$(git rev-parse --short HEAD) bun run --watch --no-clear-screen src/index.ts",
@@ -26,8 +29,11 @@
     "forum:watch": "bun run --watch forum-post/gen-html.ts --watch",
     "hooks": "bunx husky"
   },
-  "imports": {
-    "#*": "./src/*"
+  "dependencies": {
+    "hono": "^4.12.25",
+    "set-cookie-parser": "^3.1.0",
+    "temporal-polyfill": "^0.3.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^2.13.0",
@@ -77,11 +83,5 @@
   },
   "peerDependencies": {
     "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "hono": "^4.12.25",
-    "set-cookie-parser": "^3.1.0",
-    "temporal-polyfill": "^0.3.2",
-    "zod": "^4.4.3"
   }
 }
