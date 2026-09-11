@@ -24,6 +24,6 @@ export function Link({
   variant,
   ...props
 }: Readonly<ComponentPropsWithRef<"a"> & VariantProps<typeof linkVariants>>) {
-  // eslint-disable-next-line jsx-a11y/anchor-has-content
+  // oxlint-disable-next-line jsx-a11y/anchor-has-content
   return <a className={cn(linkVariants({ variant, className }))} {...props} />;
 }

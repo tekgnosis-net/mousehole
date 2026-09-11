@@ -102,7 +102,7 @@ function CopyableIP({ ip }: Readonly<{ ip: string }>) {
   // Each copy restarts the "Copied!" window. Clear any pending reset first, or
   // an earlier press's timer fires mid-spam and flips the label back too soon.
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
+    undefined, // oxlint-disable-line unicorn/no-useless-undefined -- React requires one argument.
   );
   useEffect(() => () => clearTimeout(resetTimerRef.current), []);
 

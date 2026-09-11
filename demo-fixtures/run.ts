@@ -50,7 +50,7 @@ function selectFixture(): Fixture {
     console.error(name ? `Unknown fixture "${name}".` : "Pass a fixture name.");
     console.error("\nAvailable fixtures:");
     listFixtures();
-    // eslint-disable-next-line unicorn/no-process-exit
+    // oxlint-disable-next-line unicorn/no-process-exit
     process.exit(1);
   }
   return fixture;
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   const shutdown = (): void => {
     console.log("\nStopping...");
     void server.stop().finally(() =>
-      // eslint-disable-next-line unicorn/no-process-exit
+      // oxlint-disable-next-line unicorn/no-process-exit
       process.exit(0),
     );
   };

@@ -1,5 +1,4 @@
 {
   "tailwindCSS.classFunctions": ["cva"],
-  "biome.enabled": false,
-  "eslint.enable": false
+  "biome.enabled": false
 }

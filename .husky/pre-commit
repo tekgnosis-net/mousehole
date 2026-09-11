@@ -2,8 +2,8 @@
 
 staged=$(git diff --cached --name-only --diff-filter=ACM)
 if [ -n "$staged" ]; then
-  echo "[pre-commit] Running Prettier on staged files..."
-  echo "$staged" | xargs bunx --bun prettier --write --ignore-unknown
+  echo "[pre-commit] Running oxfmt on staged files..."
+  echo "$staged" | xargs bunx oxfmt
   echo "$staged" | xargs git add
 fi
 

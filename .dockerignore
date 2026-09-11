@@ -7,7 +7,6 @@ docs
 contrib
 CONTRIBUTING.md
 components.json
-eslint.config.mjs
 CHANGELOG.md
 README.md
 LICENSE

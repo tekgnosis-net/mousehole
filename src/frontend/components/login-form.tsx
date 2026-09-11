@@ -32,7 +32,7 @@ export function LoginForm({ ref }: Readonly<{ ref?: Ref<HTMLElement> }>) {
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Enter password"
           autoComplete="current-password"
-          // eslint-disable-next-line jsx-a11y/no-autofocus
+          // oxlint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           required
         />
