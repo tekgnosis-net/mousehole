@@ -1,0 +1,21 @@
+#!/bin/sh
+# Fake gluetun for shell tests: records the env it was started with and its
+# PID, then waits for SIGTERM.
+set -eu
+: "${FAKE_DIR:?}"
+{
+	echo "PID=$$"
+	echo "SERVER_NAMES=${SERVER_NAMES:-}"
+	echo "VPN_ENDPOINT_IP=${VPN_ENDPOINT_IP:-}"
+	echo "VPN_ENDPOINT_PORT=${VPN_ENDPOINT_PORT:-}"
+	echo "WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-}"
+	echo "WIREGUARD_PUBLIC_KEY=${WIREGUARD_PUBLIC_KEY:-}"
+	echo "VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:-}"
+	echo "VPN_PORT_FORWARDING_PROVIDER=${VPN_PORT_FORWARDING_PROVIDER:-}"
+	echo "VPN_PORT_FORWARDING_USERNAME=${VPN_PORT_FORWARDING_USERNAME:-}"
+	echo "HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH=${HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH:-}"
+	echo "HAS_PRIVATE_KEY=$([ -n "${WIREGUARD_PRIVATE_KEY:-}" ] && echo 1 || echo 0)"
+} >"$FAKE_DIR/gluetun.env"
+echo started >>"$FAKE_DIR/gluetun.starts"
+trap 'exit 0' TERM INT
+while :; do sleep 1; done

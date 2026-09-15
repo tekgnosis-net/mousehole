@@ -1,0 +1,12 @@
+# Default control-server roles shipped with pia-gluetun.
+#
+# Read-only routes are open so LAN clients (and mousehole) can read the tunnel
+# state. Everything else needs the API key the entrypoint generates at boot
+# for the in-container recovery loop (role "pia-recover", appended at runtime).
+#
+# To override, bind-mount your own file to /gluetun/auth/config.toml; the
+# pia-recover role is still appended so recovery keeps working.
+[[roles]]
+name = "lan-readonly"
+auth = "none"
+routes = ["GET /v1/vpn/status", "GET /v1/publicip/ip", "GET /v1/portforward"]

@@ -1,5 +1,16 @@
 # Mousehole, a Seedbox IP Updater for MAM
 
+> **This is a fork.** Mousehole is written and maintained by
+> [Tim Martin (t-mart)](https://github.com/t-mart) at
+> [t-mart/mousehole](https://github.com/t-mart/mousehole); all credit for the
+> service, the web app and the docs below belongs there, and that is where
+> the official `tmmrtn/mousehole` Docker image comes from. This fork
+> (`tekgnosis-net/mousehole`) leaves Mousehole itself untouched and **adds one
+> thing**: [`pia-gluetun/`](/pia-gluetun/README.md), a gluetun-based image for
+> unattended Private Internet Access WireGuard port forwarding, plus a Synology
+> compose stack that runs it alongside qBittorrent and Mousehole. See
+> [Fork divergence](#fork-divergence).
+
 A background service to update a seedbox IP for MAM and web app to manage it.
 
 ![Mousehole Demo](/docs/images/demo.webp)
@@ -207,7 +218,30 @@ work, maintained on a best-effort basis.
 - [Docker Hub image](https://hub.docker.com/r/tmmrtn/mousehole)
 - [Forum post](https://www.myanonamouse.net/f/t/84712/p/p1013257)
 
+## Fork divergence
+
+Everything under `src/`, `docs/`, `contrib/`, `tests/` and the root build
+files is upstream Mousehole and is kept in sync with
+[t-mart/mousehole](https://github.com/t-mart/mousehole) via the `upstream`
+remote. This fork adds, and only adds:
+
+- [`pia-gluetun/`](/pia-gluetun/README.md): the `ghcr.io/tekgnosis-net/pia-gluetun`
+  image (gluetun v3.41.3 + in-container PIA WireGuard key registration and
+  recovery), its Go helper, scripts, tests and a Synology
+  [compose example](/pia-gluetun/compose.example.yaml).
+- [`.github/workflows/pia-gluetun-image.yaml`](/.github/workflows/pia-gluetun-image.yaml):
+  builds and publishes that image to GHCR. Upstream's Docker Hub workflows are
+  unchanged and are not run from this fork.
+- [`docs/superpowers/specs/`](/docs/superpowers/specs/): design notes for the
+  above, and [`CLAUDE.md`](/CLAUDE.md) with the investigation history.
+
+Issues and pull requests about Mousehole itself should go upstream. Issues
+about `pia-gluetun` belong in this fork.
+
 ## Attribution
+
+- [Mousehole](https://github.com/t-mart/mousehole) by Tim Martin (t-mart), the
+  upstream project this repository is forked from.
 
 - [Commissioner](https://github.com/kosbarts/Commissioner), Copyright 2019 The
   Commissioner Project Authors, licensed under

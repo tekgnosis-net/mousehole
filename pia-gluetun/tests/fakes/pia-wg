@@ -1,0 +1,82 @@
+#!/bin/sh
+# Fake pia-wg for shell tests. Behaviour is driven by files in $FAKE_DIR:
+#   health        "1" or "0"        -> probe result
+#   apply_exit    integer           -> exit code of apply
+#   register_exit integer           -> exit code of register (3 = pinned gone)
+#   new_cn        name              -> CN chosen when not pinned
+# Every invocation is appended to $FAKE_DIR/calls.log.
+set -eu
+: "${FAKE_DIR:?}"
+printf '%s\n' "$*" >>"$FAKE_DIR/calls.log"
+readf() { if [ -f "$FAKE_DIR/$1" ]; then cat "$FAKE_DIR/$1"; else printf '%s' "$2"; fi; }
+
+cmd=${1:-}
+shift || true
+state_dir=""
+pin_cn=""
+exclude=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--state-dir) state_dir=$2; shift ;;
+	--pin-cn) pin_cn=$2; shift ;;
+	--exclude-cn) exclude=$2; shift ;;
+	esac
+	shift
+done
+
+emit_state() {
+	# $1 = cn, $2 = ip
+	cat <<EOF
+PIA_WG_REGION='swiss'
+PIA_WG_CN='$1'
+PIA_WG_SERVER_IP='$2'
+PIA_WG_SERVER_PORT='1337'
+PIA_WG_SERVER_KEY='HZ9LQerrZabnO9CzMqzaHNm6x+8SvrHjhXHDgUgQl9U='
+PIA_WG_SERVER_VIP='10.9.128.1'
+PIA_WG_PEER_IP='10.9.112.7'
+PIA_WG_PRIVATE_KEY='vHSLuTgFKu4w2Gakkuu6KdFG+qlRn+bj1HNJyFWzrjc='
+PIA_WG_DNS='10.0.0.243'
+PIA_WG_REGISTERED_AT='2026-09-16T00:00:00Z'
+PIA_WG_SERVER_CHANGED_AT='2026-09-16T00:00:00Z'
+PIA_WG_SERVER_CHANGED_EPOCH='$(readf changed_epoch 0)'
+EOF
+}
+
+case "$cmd" in
+state)
+	[ -f "$state_dir/state.env" ] || exit 1
+	cat "$state_dir/state.env"
+	;;
+register)
+	rc=$(readf register_exit 0)
+	[ "$rc" -eq 0 ] || exit "$rc"
+	if [ -n "$pin_cn" ]; then
+		cn=$pin_cn
+		ip=10.0.0.1
+	else
+		cn=$(readf new_cn new-server)
+		ip=10.0.0.2
+	fi
+	[ "$cn" != "$exclude" ] || cn="${cn}-alt"
+	mkdir -p "$state_dir"
+	emit_state "$cn" "$ip" >"$state_dir/state.env"
+	cat "$state_dir/state.env"
+	;;
+probe)
+	h=$(readf health 1)
+	printf "PIA_PROBE_STATUS='running'\nPIA_PROBE_PUBLIC_IP='1.2.3.4'\nPIA_PROBE_PORT='4321'\nPIA_PROBE_HEALTHY='%s'\nPIA_PROBE_ERROR=''\n" "$h"
+	[ "$h" = 1 ]
+	;;
+apply)
+	exit "$(readf apply_exit 0)"
+	;;
+gluetun-settings)
+	echo '{}'
+	;;
+version)
+	echo fake
+	;;
+*)
+	exit 2
+	;;
+esac

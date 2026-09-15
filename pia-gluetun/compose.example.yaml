@@ -1,0 +1,95 @@
+# MyAnonamouse seedbox stack for Synology DSM 7 Container Manager:
+#   pia-gluetun (PIA WireGuard + port forwarding) + qBittorrent + mousehole
+#
+# Container Manager "Project" has no .env support, so every value is inline.
+# Replace the two PIA credentials and the mousehole password before use.
+#
+# Host layout (create these folders first, owned by the DSM user with PUID/PGID
+# below):
+#   /volume1/docker/mousehole-qbit/            project root
+#   /volume1/docker/mousehole-qbit/mam/gluetun     gluetun state (keys, port signature)
+#   /volume1/docker/mousehole-qbit/mam/qbittorrent qBittorrent config
+#   /volume1/docker/mousehole-qbit/mam/mousehole   mousehole state (cookie)
+#   /volume1/docker/mousehole-qbit/downloads       torrent data
+#
+# LAN ports (all published on the gluetun container because the others share
+# its network namespace):
+#   8099  qBittorrent WebUI     8009  gluetun control server     5010  mousehole
+
+services:
+  gluetun:
+    image: ghcr.io/tekgnosis-net/pia-gluetun:latest
+    container_name: pia-gluetun
+    hostname: pia-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    init: true
+    ports:
+      - "8099:8099" # qBittorrent WebUI
+      - "5010:5010" # mousehole
+      - "8009:8009" # gluetun control server (read-only routes open on LAN)
+    volumes:
+      - /volume1/docker/mousehole-qbit/mam/gluetun:/gluetun
+    environment:
+      TZ: Australia/Sydney
+      PUID: "1026" # DSM user id (id <user>)
+      PGID: "100" # DSM "users" group
+      # --- PIA -------------------------------------------------------------
+      PIA_USER: pXXXXXXX
+      PIA_PASS: replace-with-your-pia-password
+      PIA_REGION: swiss # any PIA region id with port forwarding (see README)
+      # --- recovery dials (defaults shown; see README "Dials") --------------
+      PIA_CHECK_INTERVAL: "60"
+      PIA_FAIL_THRESHOLD: "3"
+      PIA_SAME_SERVER_ATTEMPTS: "2"
+      PIA_MIN_SERVER_CHANGE_INTERVAL: "3600"
+      PIA_STARTUP_GRACE: "120"
+      PIA_RECOVERY_MODE: api
+      PIA_REQUIRE_PORT_FORWARD: "on"
+      # --- gluetun ---------------------------------------------------------
+      HTTP_CONTROL_SERVER_ADDRESS: ":8009"
+      FIREWALL_INPUT_PORTS: "8099,5010,8009"
+      # Push the forwarded port into qBittorrent every time it is (re)assigned.
+      # Requires "Bypass authentication for clients on localhost" in qBittorrent.
+      VPN_PORT_FORWARDING_UP_COMMAND: >-
+        /bin/sh -c 'wget -q -O /dev/null --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8099/api/v2/app/setPreferences'
+      HEALTH_VPN_DURATION_INITIAL: 30s
+      LOG_LEVEL: info
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:5.2.3
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      TZ: Australia/Sydney
+      PUID: "1026"
+      PGID: "100"
+      WEBUI_PORT: "8099" # must equal the published host port (Host header check)
+    volumes:
+      - /volume1/docker/mousehole-qbit/mam/qbittorrent:/config
+      - /volume1/docker/mousehole-qbit/downloads:/downloads
+    restart: unless-stopped
+
+  mousehole:
+    image: tmmrtn/mousehole:latest
+    container_name: mousehole
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      TZ: Australia/Sydney
+      MOUSEHOLE_AUTH_PASSWORD: replace-with-a-long-random-password
+      # The NAS name/IP you will type in the browser, plus localhost.
+      MOUSEHOLE_ALLOWED_HOSTS: "localhost,127.0.0.1,nas.local,192.168.1.10"
+      # mousehole only needs the tunnel, not the port; keep contact rare.
+      MOUSEHOLE_UPDATE_INTERVAL_SECONDS: "3600"
+    volumes:
+      - /volume1/docker/mousehole-qbit/mam/mousehole:/var/lib/mousehole
+    restart: unless-stopped

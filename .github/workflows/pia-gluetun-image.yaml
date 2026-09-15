@@ -1,0 +1,98 @@
+# Builds and publishes the pia-gluetun image (pia-gluetun/) to GHCR.
+#
+# Tags:
+#   push to master touching pia-gluetun/**   -> ghcr.io/<owner>/pia-gluetun:edge
+#   git tag pia-gluetun-vX.Y.Z               -> :X.Y.Z, :X.Y, :latest
+#   pull request                              -> build only, no push
+#   workflow_dispatch                         -> :edge (or the tag's versions)
+#
+# This workflow is independent of mousehole's own Docker Hub workflow.
+
+name: pia-gluetun image
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - "pia-gluetun/**"
+      - ".github/workflows/pia-gluetun-image.yaml"
+    tags:
+      - "pia-gluetun-v[0-9]+.[0-9]+.[0-9]+"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - "pia-gluetun/**"
+      - ".github/workflows/pia-gluetun-image.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/pia-gluetun
+
+jobs:
+  test:
+    name: shellcheck + go test + sh tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: pia-gluetun/pia-wg/go.mod
+          cache: false # stdlib-only module, no go.sum to key a cache on
+      - name: Install busybox and shellcheck
+        run: sudo apt-get update -q && sudo apt-get install -y -q busybox shellcheck dash
+      - name: Run all offline checks
+        run: sh pia-gluetun/tests/run.sh
+
+  image:
+    name: build and push
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=edge,branch=master
+            type=ref,event=pr
+            type=match,pattern=pia-gluetun-v(\d+\.\d+\.\d+),group=1
+            type=match,pattern=pia-gluetun-v(\d+\.\d+)\.\d+,group=1
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/pia-gluetun-v') }}
+          labels: |
+            org.opencontainers.image.title=pia-gluetun
+            org.opencontainers.image.description=gluetun with unattended PIA WireGuard port forwarding
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: pia-gluetun
+          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=pia-gluetun
+          cache-to: type=gha,mode=max,scope=pia-gluetun
