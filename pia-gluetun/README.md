@@ -119,8 +119,10 @@ PIA_USER=… PIA_PASS=… sh pia-gluetun/tests/integration.sh pia-gluetun:local
 `gluetun-settings`, `state`, `probe`, `apply`, `version`; run any with `-h`.
 The PIA protocol follows [pia-foss/manual-connections](https://github.com/pia-foss/manual-connections).
 
-Releases: push a tag `pia-gluetun-vX.Y.Z`. Pushes to `master` that touch
-`pia-gluetun/` publish `:edge`.
+Releases: push a tag `pia-gluetun-vX.Y.Z`, which publishes `:X.Y.Z`, `:X.Y`
+and `:latest`. Pushes to `master` that touch `pia-gluetun/` publish `:edge`.
+`:latest` does not exist until the first tag has been pushed; the compose
+example pins `:X.Y` so a NAS on auto-pull only picks up patch releases.
 
 ## Open question carried from the investigation
 

@@ -18,7 +18,8 @@
 
 services:
   gluetun:
-    image: ghcr.io/tekgnosis-net/pia-gluetun:latest
+    # :0.1 follows patch releases; :latest is the newest release; :edge tracks master.
+    image: ghcr.io/tekgnosis-net/pia-gluetun:0.1
     container_name: pia-gluetun
     hostname: pia-gluetun
     cap_add:
