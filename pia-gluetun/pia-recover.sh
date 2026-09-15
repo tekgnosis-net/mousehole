@@ -29,16 +29,22 @@ run_dir=${PIA_RUN_DIR:?}
 state_dir=${PIA_STATE_DIR:?}
 control=${PIA_CONTROL_URL:?}
 pf_file=${PIA_PORTFORWARD_FILE:-/gluetun/piaportforward.json}
+bypass_mark=${PIA_BYPASS_MARK:-0}
+bypass_dns=${PIA_BYPASS_DNS:-}
 supervisor=$PPID
 
 trap 'exit 0' TERM INT
 
-pia_log $C "started: interval=${interval}s threshold=$threshold same_server_attempts=$same_attempts min_server_change=${min_change}s mode=$mode require_port=$require_port"
+pia_log $C "started: interval=${interval}s threshold=$threshold same_server_attempts=$same_attempts min_server_change=${min_change}s mode=$mode require_port=$require_port bypass_mark=$bypass_mark"
 
 # register PIN_CN PIN_IP EXCLUDE_CN -> writes $run_dir/register.env.new
 register() {
+	# Registration talks to PIA around the tunnel (which is presumably dead);
+	# make sure gluetun's firewall lets the marked packets out first.
+	pia_allow_bypass "$bypass_mark" || true
 	set -- register --region "$PIA_REGION" --state-dir "$state_dir" \
 		--timeout "${register_timeout}s" --port-forward-only="$pf_only" --format env \
+		--bypass-mark "$bypass_mark" --bypass-dns "$bypass_dns" \
 		--pin-cn "$1" --pin-ip "$2" --exclude-cn "$3"
 	pia-wg "$@" >"$run_dir/register.env.new"
 }

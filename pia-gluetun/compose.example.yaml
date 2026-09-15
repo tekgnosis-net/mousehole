@@ -51,6 +51,8 @@ services:
       PIA_REQUIRE_PORT_FORWARD: "on"
       # --- gluetun ---------------------------------------------------------
       HTTP_CONTROL_SERVER_ADDRESS: ":8009"
+      # gluetun's DNS forwarder spreads queries over these DoT resolvers.
+      DNS_UPSTREAM_RESOLVERS: "cloudflare,quad9,google"
       FIREWALL_INPUT_PORTS: "8099,5010,8009"
       # Push the forwarded port into qBittorrent every time it is (re)assigned,
       # and clear it when port forwarding tears down. The DOWN command is

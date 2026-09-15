@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fake iptables for shell tests. Records calls; keeps inserted OUTPUT rules
+# in $FAKE_DIR/iptables.rules so -C can find them.
+set -eu
+: "${FAKE_DIR:?}"
+printf 'iptables %s\n' "$*" >>"$FAKE_DIR/calls.log"
+case "${1:-}" in
+-S) printf -- '-P OUTPUT DROP\n-A OUTPUT -o lo -j ACCEPT\n' ;;
+-C) shift 2; grep -qxF -- "$*" "$FAKE_DIR/iptables.rules" 2>/dev/null ;;
+-I) shift 3; printf '%s\n' "$*" >>"$FAKE_DIR/iptables.rules" ;;
+*) exit 2 ;;
+esac

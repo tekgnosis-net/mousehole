@@ -24,6 +24,11 @@ PIA_REGISTER_TIMEOUT=$(pia_clamp PIA_REGISTER_TIMEOUT 30 5 120)
 PIA_PORT_FORWARD_ONLY=$(pia_bool PIA_PORT_FORWARD_ONLY true)
 export PIA_MIN_SERVER_CHANGE_INTERVAL
 PIA_MIN_SERVER_CHANGE_INTERVAL=$(pia_clamp PIA_MIN_SERVER_CHANGE_INTERVAL 3600 0 604800)
+# Socket mark that skips gluetun's tunnel routing (its rule: "not fwmark 0xca6c
+# lookup 51820"). Recovery must reach PIA while the tunnel is dead.
+export PIA_BYPASS_MARK PIA_BYPASS_DNS
+PIA_BYPASS_MARK=$(pia_clamp PIA_BYPASS_MARK 51820 0 4294967295)
+PIA_BYPASS_DNS=${PIA_BYPASS_DNS:-1.1.1.1:53,8.8.8.8:53}
 
 if [ -z "$PIA_REGION" ]; then
 	pia_log $C "PIA_REGION is required (e.g. swiss)"
@@ -67,7 +72,8 @@ pin_cn=$old_cn
 pin_ip=$old_ip
 while :; do
 	set -- register --region "$PIA_REGION" --state-dir "$PIA_STATE_DIR" \
-		--timeout "${PIA_REGISTER_TIMEOUT}s" --port-forward-only="$PIA_PORT_FORWARD_ONLY" --format env
+		--timeout "${PIA_REGISTER_TIMEOUT}s" --port-forward-only="$PIA_PORT_FORWARD_ONLY" --format env \
+		--bypass-mark "$PIA_BYPASS_MARK" --bypass-dns "$PIA_BYPASS_DNS"
 	if [ -n "$pin_cn" ]; then
 		set -- "$@" --pin-cn "$pin_cn" --pin-ip "$pin_ip"
 	fi
@@ -77,9 +83,10 @@ while :; do
 		rc=$?
 	fi
 	if [ -n "$pin_cn" ] && { [ "$rc" -eq 3 ] || [ "$attempt" -ge 2 ]; }; then
-		pia_log $C "pinned server $pin_cn unavailable (exit $rc), releasing pin"
+		pia_log $C "pinned server $pin_cn unavailable (exit $rc), releasing pin and choosing another server now"
 		pin_cn=""
 		pin_ip=""
+		continue # not a network failure: retry immediately, and do not count it
 	fi
 	if [ "$attempt" -ge "$PIA_REGISTER_ATTEMPTS" ]; then
 		pia_log $C "key registration failed after $attempt attempts, giving up"

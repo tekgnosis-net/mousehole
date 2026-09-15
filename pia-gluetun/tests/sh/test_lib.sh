@@ -66,13 +66,35 @@ check "auth keeps lan-readonly role" 1 "$(grep -c 'name = "lan-readonly"' "$tmp/
 # pia_export_gluetun_env
 PIA_WG_PRIVATE_KEY=priv PIA_WG_SERVER_KEY=pub PIA_WG_PEER_IP=10.1.2.3 PIA_WG_SERVER_IP=1.1.1.1 \
 	PIA_WG_SERVER_PORT=1337 PIA_WG_CN=cn1 PIA_USER=u PIA_PASS=p
+VPN_PORT_FORWARDING=off # simulate the gluetun image default
 pia_export_gluetun_env
 check "export addresses adds /32" 10.1.2.3/32 "$WIREGUARD_ADDRESSES"
 check "export server names" cn1 "$SERVER_NAMES"
-check "export endpoint" 1.1.1.1 "$VPN_ENDPOINT_IP"
+check "export endpoint" 1.1.1.1 "$WIREGUARD_ENDPOINT_IP"
+check "export endpoint port" 1337 "$WIREGUARD_ENDPOINT_PORT"
+check "export port forwarding on despite image default off" on "$VPN_PORT_FORWARDING"
+PIA_PORT_FORWARDING=off
+pia_export_gluetun_env
+check "export port forwarding off via knob" off "$VPN_PORT_FORWARDING"
+unset PIA_PORT_FORWARDING
 check "export pf provider" "private internet access" "$VPN_PORT_FORWARDING_PROVIDER"
 check "export pf username" u "$VPN_PORT_FORWARDING_USERNAME"
 check "export provider custom" custom "$VPN_SERVICE_PROVIDER"
+
+# pia_allow_bypass with the fake iptables
+FAKE_DIR=$(mktemp -d)
+export FAKE_DIR
+PATH="$ROOT/tests/fakes:$PATH"
+check "iptables backend detected" iptables-legacy "$(pia_iptables)"
+pia_allow_bypass 51820 2>/dev/null
+check "three bypass rules inserted" 3 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
+check "rules cover 443, 1337 and dns" 3 "$(grep -c -- '--dport 443\|--dport 1337\|--dport 53' "$FAKE_DIR/iptables.rules")"
+pia_allow_bypass 51820 2>/dev/null
+check "second call is idempotent" 3 "$(grep -c '^iptables -I' "$FAKE_DIR/calls.log")"
+: >"$FAKE_DIR/calls.log"
+pia_allow_bypass 0
+check "mark 0 touches nothing" 0 "$(wc -l <"$FAKE_DIR/calls.log")"
+rm -rf "$FAKE_DIR"
 
 # pia_log format
 line=$(pia_log comp "hello world" 2>&1)

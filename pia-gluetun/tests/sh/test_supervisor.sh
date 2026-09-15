@@ -59,7 +59,9 @@ start
 wait_for "gluetun started" 5 starts_is 1
 check "no pin on cold start" 0 "$(grep -c -- '--pin-cn' "$FAKE_DIR/calls.log")"
 check "SERVER_NAMES exported" new-server "$(sed -n 's/^SERVER_NAMES=//p' "$FAKE_DIR/gluetun.env")"
-check "endpoint exported" 10.0.0.2 "$(sed -n 's/^VPN_ENDPOINT_IP=//p' "$FAKE_DIR/gluetun.env")"
+check "endpoint exported" 10.0.0.2 "$(sed -n 's/^WIREGUARD_ENDPOINT_IP=//p' "$FAKE_DIR/gluetun.env")"
+check "port forwarding forced on" on "$(sed -n 's/^VPN_PORT_FORWARDING=//p' "$FAKE_DIR/gluetun.env")"
+check "boot registration bypasses tunnel" 1 "$(grep -c -- '--bypass-mark 51820 --bypass-dns 1.1.1.1:53,8.8.8.8:53' "$FAKE_DIR/calls.log")"
 check "addresses /32" 10.9.112.7/32 "$(sed -n 's/^WIREGUARD_ADDRESSES=//p' "$FAKE_DIR/gluetun.env")"
 check "private key passed" 1 "$(sed -n 's/^HAS_PRIVATE_KEY=//p' "$FAKE_DIR/gluetun.env")"
 check "pf username passed" user "$(sed -n 's/^VPN_PORT_FORWARDING_USERNAME=//p' "$FAKE_DIR/gluetun.env")"
@@ -99,10 +101,11 @@ echo 3 >"$FAKE_DIR/register_exit"
 : >"$FAKE_DIR/calls.log"
 export PIA_REGISTER_ATTEMPTS=3
 start
-sleep 1
+wait_for "register retried without pin" 3 calls_has '^register .*--format env --bypass-mark 51820 --bypass-dns [^ ]*$'
 rm -f "$FAKE_DIR/register_exit"
 wait_for "gluetun started after pin release" 12 starts_is 1
 check "pin released log" 1 "$(grep -c 'releasing pin' "$FAKE_DIR/entrypoint.log")"
+check "no backoff before the unpinned retry" 0 "$(grep -c 'retrying in 5s' "$FAKE_DIR/entrypoint.log")"
 check "new server chosen" new-server "$(sed -n 's/^SERVER_NAMES=//p' "$FAKE_DIR/gluetun.env")"
 unset PIA_REGISTER_ATTEMPTS
 stop
@@ -115,6 +118,8 @@ wait_for "gluetun started" 5 starts_is 1
 touch "$FAKE_DIR/piaportforward.json"
 echo 0 >"$FAKE_DIR/health"
 wait_for "re-registered pinned to current server" 10 calls_has '--pin-cn new-server'
+check "bypass firewall rules opened before registering" 3 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
+check "recovery registration bypasses tunnel" 1 "$(grep -c -- '--bypass-mark 51820 .*--pin-cn new-server' "$FAKE_DIR/calls.log")"
 wait_for "apply called" 5 calls_has '^apply '
 sleep 0.5
 check "no restart when apply succeeds" 1 "$(starts)"
@@ -159,8 +164,8 @@ wait_for "gluetun started" 5 starts_is 1
 : >"$FAKE_DIR/calls.log"
 echo 0 >"$FAKE_DIR/health"
 wait_for "hold logged" 10 log_has 'server change interval not reached'
+wait_for "re-registered same server" 5 calls_has '--pin-cn new-server'
 check "no exclusion while holding" 0 "$(grep -c -- '--exclude-cn new-server' "$FAKE_DIR/calls.log")"
-check "re-registered same server" 1 "$(grep -c -- '--pin-cn new-server' "$FAKE_DIR/calls.log")"
 stop
 
 echo "--- missing configuration fails fast"

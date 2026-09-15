@@ -153,6 +153,17 @@ Unresolved and must be understood before the image is declared done:
   appear in several roles. Busybox `wget` cannot send PUT, hence `pia-wg apply`.
 - wget's `-nv` summary goes to stderr and gluetun logs it at ERROR even on HTTP 200;
   use `-q`.
+- The gluetun image sets `VPN_PORT_FORWARDING=off`, `SERVER_NAMES=`, `WIREGUARD_ADDRESSES=`
+  etc. as **image-level ENV defaults**. `${VAR:-default}` therefore never applies; set
+  every gluetun variable unconditionally. (Bit us on 2026-09-16: port forwarding silently off.)
+- gluetun routes with `not from all fwmark 0xca6c lookup 51820`: a socket with
+  `SO_MARK=51820` leaves via eth0, bypassing the tunnel. Its firewall still needs an
+  OUTPUT rule for marked packets. Recovery traffic (token, serverlist, addKey, DNS) must
+  use this path; through the tunnel it either hangs or, for addKey, kills the session it
+  travels over (PIA keeps one key per account per server, so addKey replaces the live
+  session and the response never comes back). Observed live 2026-09-16 02:04 AEST.
+- Endpoint env names are `WIREGUARD_ENDPOINT_IP`/`_PORT`; `VPN_ENDPOINT_*` are deprecated
+  and warn twice.
 - qBittorrent: WebUI port must equal the published host port (Host-header validation)
   and "Bypass authentication for clients on localhost" must be on for the up command.
   Always pair it with `VPN_PORT_FORWARDING_DOWN_COMMAND` (listen_port 0, interface

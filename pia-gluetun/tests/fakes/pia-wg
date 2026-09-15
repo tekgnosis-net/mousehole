@@ -49,6 +49,8 @@ state)
 	;;
 register)
 	rc=$(readf register_exit 0)
+	# exit 3 ("pinned server gone") only makes sense for pinned calls
+	if [ "$rc" -eq 3 ] && [ -z "$pin_cn" ]; then rc=0; fi
 	[ "$rc" -eq 0 ] || exit "$rc"
 	if [ -n "$pin_cn" ]; then
 		cn=$pin_cn

@@ -112,6 +112,8 @@ func cmdRegister(args []string) int {
 	serverListURL := fs.String("serverlist-url", pia.DefaultServerListURL, "server list URL (testing)")
 	tokenURL := fs.String("token-url", pia.DefaultTokenURL, "token URL (testing)")
 	addKeyPort := fs.String("addkey-port", pia.DefaultAddKeyPort, "addKey TLS port (testing)")
+	bypassMark := fs.Uint("bypass-mark", 0, "SO_MARK to route around the VPN tunnel (gluetun uses 51820); 0 = off")
+	bypassDNS := fs.String("bypass-dns", "", "comma-separated host:port DNS servers to use with --bypass-mark")
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
@@ -140,6 +142,17 @@ func cmdRegister(args []string) int {
 		AddKeyPort:    *addKeyPort,
 		CacheDir:      *stateDir,
 		Timeout:       *timeout,
+		Bypass:        pia.Bypass{Mark: uint32(*bypassMark)},
+	}
+	if *bypassDNS != "" {
+		client.Bypass.DNS = strings.Split(*bypassDNS, ",")
+	}
+	if client.Bypass.Enabled() {
+		if _, err := client.Bypass.Dialer(*timeout); err != nil {
+			logf("%v", err)
+			return exitUsage
+		}
+		logf("bypassing VPN tunnel: mark=%d dns=%s", client.Bypass.Mark, strings.Join(client.Bypass.DNS, ","))
 	}
 
 	regions, err := client.FetchServerList(ctx)

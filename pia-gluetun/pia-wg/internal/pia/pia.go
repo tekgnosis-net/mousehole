@@ -64,13 +64,30 @@ type Client struct {
 	Now func() time.Time
 	// Timeout bounds every request.
 	Timeout time.Duration
+	// Bypass routes every connection around the VPN tunnel (see Bypass).
+	Bypass Bypass
 }
 
 func (c *Client) http() *http.Client {
 	if c.HTTP != nil {
 		return c.HTTP
 	}
-	return &http.Client{Timeout: c.timeout()}
+	client := &http.Client{Timeout: c.timeout()}
+	if c.Bypass.Enabled() {
+		d, err := c.Bypass.Dialer(c.timeout())
+		if err == nil {
+			client.Transport = &http.Transport{DialContext: d.DialContext, ForceAttemptHTTP2: true}
+		}
+	}
+	return client
+}
+
+// dialer returns the dialer used for raw connections (addKey).
+func (c *Client) dialer() (*net.Dialer, error) {
+	if c.Bypass.Enabled() {
+		return c.Bypass.Dialer(c.timeout())
+	}
+	return &net.Dialer{Timeout: c.timeout()}, nil
 }
 
 func (c *Client) timeout() time.Duration {
@@ -333,7 +350,10 @@ func (c *Client) AddKey(ctx context.Context, cn, ip, token, pubkey string) (*Add
 		}
 	}
 	port := orDefault(c.AddKeyPort, DefaultAddKeyPort)
-	dialer := &net.Dialer{Timeout: c.timeout()}
+	dialer, err := c.dialer()
+	if err != nil {
+		return nil, err
+	}
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{RootCAs: rootCAs, ServerName: cn, MinVersion: tls.VersionTLS12},
 		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {

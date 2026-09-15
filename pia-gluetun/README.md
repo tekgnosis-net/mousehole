@@ -68,6 +68,19 @@ pia-entrypoint.sh (PID 1)
   generated at boot and kept in `/run/pia/apikey` (mode 600). Mount your own
   `/gluetun/auth/config.toml` to change the open routes; the recovery role is
   always appended.
+- **Recovery traffic bypasses the tunnel.** Re-registering a key means
+  talking to PIA while the tunnel is dead, and gluetun's DNS and firewall only
+  work through the tunnel. `pia-wg` therefore marks its sockets with
+  `PIA_BYPASS_MARK` (51820, the mark gluetun's own WireGuard socket uses, so
+  its policy rule routes them via the real interface) and resolves names
+  through `PIA_BYPASS_DNS` over marked sockets. Before each recovery the loop
+  inserts three iptables rules letting marked packets out to TCP 443, TCP
+  1337 and UDP 53. Only PIA's API and DNS ever use this path; it is the same
+  traffic a cold start sends before the tunnel exists.
+- **A same-server re-registration always replaces the live session.** PIA
+  keeps one WireGuard key per account per server, so the moment `addKey`
+  succeeds the old session is gone. That is fine during recovery (the tunnel
+  is already unhealthy) and is why the loop never re-registers a healthy tunnel.
 - **Zero host coupling.** No Docker socket, no compose editing, no `.env`,
   no second container in the recovery path.
 
@@ -79,7 +92,10 @@ Every threshold is an env var read at start with a default and a clamp.
 | --- | --- | --- | --- |
 | `PIA_USER` / `PIA_PASS` | required | | PIA credentials. `PIA_USER_FILE` / `PIA_PASS_FILE` read from a file instead. Also used by gluetun for port forwarding. |
 | `PIA_REGION` | required | | PIA region id (`swiss`, `ca_toronto`, `de_berlin`…). List: `curl -s https://serverlist.piaservers.net/vpninfo/servers/v6 \| head -1 \| jq -r '.regions[] \| select(.port_forward) \| .id'`. |
+| `PIA_PORT_FORWARDING` | `on` | on/off | Sets gluetun's `VPN_PORT_FORWARDING`. Set explicitly because the gluetun base image defaults it to `off`. |
 | `PIA_PORT_FORWARD_ONLY` | `on` | on/off | Refuse regions that do not offer port forwarding. |
+| `PIA_BYPASS_MARK` | `51820` | 0–4294967295 | Socket mark that routes recovery traffic around the tunnel. `0` disables the bypass (recovery then only works while the tunnel is up, which defeats the point). |
+| `PIA_BYPASS_DNS` | `1.1.1.1:53,8.8.8.8:53` | host:port list | Plain-DNS servers used over marked sockets by `pia-wg`. Only PIA hostnames are resolved this way. |
 | `PIA_REQUIRE_PORT_FORWARD` | `on` | on/off | Treat "no forwarded port" as unhealthy. Turn off if you only need the tunnel. |
 | `PIA_CHECK_INTERVAL` | `60` | 1–3600 s | How often the loop probes the control server. |
 | `PIA_FAIL_THRESHOLD` | `3` | 1–100 | Consecutive unhealthy probes before recovery starts. |
@@ -92,10 +108,12 @@ Every threshold is an env var read at start with a default and a clamp.
 | `PIA_STATE_DIR` | `/gluetun/pia` | | Where `state.json` and the 24 h token cache live (persist it with the `/gluetun` volume). |
 | `HTTP_CONTROL_SERVER_ADDRESS` | `:8000` | | gluetun's; the loop derives its port from it. The compose example uses `:8009`. |
 
-All other gluetun variables work unchanged. Do **not** set
-`VPN_SERVICE_PROVIDER`, `VPN_TYPE`, `WIREGUARD_*`, `VPN_ENDPOINT_*`,
-`SERVER_NAMES`, `VPN_PORT_FORWARDING_PROVIDER` or the port-forward credentials;
-the entrypoint owns them.
+All other gluetun variables work unchanged, for example
+`DNS_UPSTREAM_RESOLVERS: "cloudflare,quad9,google"` in the compose example.
+Do **not** set `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, `WIREGUARD_*`,
+`SERVER_NAMES`, `VPN_PORT_FORWARDING`, `VPN_PORT_FORWARDING_PROVIDER` or the
+port-forward credentials; the entrypoint owns them (use `PIA_PORT_FORWARDING`
+to turn port forwarding off).
 
 ## Files inside the container
 

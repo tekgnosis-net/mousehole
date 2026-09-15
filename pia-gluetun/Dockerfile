@@ -40,7 +40,10 @@ ENV PIA_STATE_DIR=/gluetun/pia \
     PIA_REQUIRE_PORT_FORWARD=on \
     PIA_PORT_FORWARD_ONLY=on \
     PIA_REGISTER_ATTEMPTS=5 \
-    PIA_REGISTER_TIMEOUT=30
+    PIA_REGISTER_TIMEOUT=30 \
+    PIA_PORT_FORWARDING=on \
+    PIA_BYPASS_MARK=51820 \
+    PIA_BYPASS_DNS=1.1.1.1:53,8.8.8.8:53
 
 # gluetun's own HEALTHCHECK (/gluetun-entrypoint healthcheck) is inherited.
 ENTRYPOINT ["/pia-entrypoint.sh"]

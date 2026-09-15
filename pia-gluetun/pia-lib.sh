@@ -76,11 +76,59 @@ pia_export_gluetun_env() {
 	export WIREGUARD_PRIVATE_KEY="$PIA_WG_PRIVATE_KEY"
 	export WIREGUARD_PUBLIC_KEY="$PIA_WG_SERVER_KEY"
 	export WIREGUARD_ADDRESSES="$PIA_WG_PEER_IP/32"
-	export VPN_ENDPOINT_IP="$PIA_WG_SERVER_IP"
-	export VPN_ENDPOINT_PORT="$PIA_WG_SERVER_PORT"
+	export WIREGUARD_ENDPOINT_IP="$PIA_WG_SERVER_IP"
+	export WIREGUARD_ENDPOINT_PORT="$PIA_WG_SERVER_PORT"
 	export SERVER_NAMES="$PIA_WG_CN"
-	export VPN_PORT_FORWARDING="${VPN_PORT_FORWARDING:-on}"
+	# The gluetun base image ships VPN_PORT_FORWARDING=off as an image default,
+	# so it must be set explicitly from our own knob rather than inherited.
+	if [ "$(pia_bool PIA_PORT_FORWARDING true)" = true ]; then
+		export VPN_PORT_FORWARDING=on
+	else
+		export VPN_PORT_FORWARDING=off
+	fi
 	export VPN_PORT_FORWARDING_PROVIDER="private internet access"
 	export VPN_PORT_FORWARDING_USERNAME="$PIA_USER"
 	export VPN_PORT_FORWARDING_PASSWORD="$PIA_PASS"
+}
+
+# pia_iptables -> prints the iptables binary that holds gluetun's rules.
+# gluetun picks whichever of iptables-legacy / iptables-nft / iptables works,
+# so look for its OUTPUT rules rather than assuming a backend.
+pia_iptables() {
+	for _b in iptables-legacy iptables-nft iptables; do
+		if command -v "$_b" >/dev/null 2>&1 && "$_b" -S OUTPUT 2>/dev/null | grep -q '^-A OUTPUT'; then
+			printf '%s\n' "$_b"
+			return 0
+		fi
+	done
+	for _b in iptables-legacy iptables-nft iptables; do
+		if command -v "$_b" >/dev/null 2>&1; then
+			printf '%s\n' "$_b"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# pia_allow_bypass MARK -> makes sure packets carrying fwmark MARK may leave
+# for PIA's API (TCP 443, TCP 1337) and DNS (UDP 53) despite gluetun's
+# firewall. Idempotent. gluetun's routing rule already sends marked packets
+# around the tunnel; this only opens the OUTPUT chain for them.
+pia_allow_bypass() {
+	_mark=$1
+	[ "$_mark" -ne 0 ] || return 0
+	_ipt=$(pia_iptables) || {
+		pia_log pia-lib "no iptables binary found, cannot open bypass rules"
+		return 1
+	}
+	_added=0
+	for _spec in "-p tcp --dport 443" "-p tcp --dport 1337" "-p udp --dport 53"; do
+		# shellcheck disable=SC2086  # _spec is a fixed word list
+		if ! "$_ipt" -C OUTPUT -m mark --mark "$_mark" $_spec -j ACCEPT 2>/dev/null; then
+			# shellcheck disable=SC2086
+			"$_ipt" -I OUTPUT 1 -m mark --mark "$_mark" $_spec -j ACCEPT
+			_added=1
+		fi
+	done
+	[ "$_added" -eq 0 ] || pia_log pia-lib "firewall: allowed fwmark $_mark to PIA (tcp 443, tcp 1337, udp 53) via $_ipt"
 }
