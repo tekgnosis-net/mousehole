@@ -51,10 +51,15 @@ services:
       # --- gluetun ---------------------------------------------------------
       HTTP_CONTROL_SERVER_ADDRESS: ":8009"
       FIREWALL_INPUT_PORTS: "8099,5010,8009"
-      # Push the forwarded port into qBittorrent every time it is (re)assigned.
-      # Requires "Bypass authentication for clients on localhost" in qBittorrent.
+      # Push the forwarded port into qBittorrent every time it is (re)assigned,
+      # and clear it when port forwarding tears down. The DOWN command is
+      # required: qBittorrent only re-binds when the port value changes, and
+      # every pia-gluetun recovery cycles port forwarding, often with the same
+      # port. Requires "Bypass authentication for clients on localhost".
       VPN_PORT_FORWARDING_UP_COMMAND: >-
-        /bin/sh -c 'wget -q -O /dev/null --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8099/api/v2/app/setPreferences'
+        /bin/sh -c 'wget -q -O /dev/null --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}},\"current_network_interface\":\"{{VPN_INTERFACE}}\",\"random_port\":false,\"upnp\":false}" http://127.0.0.1:8099/api/v2/app/setPreferences'
+      VPN_PORT_FORWARDING_DOWN_COMMAND: >-
+        /bin/sh -c 'wget -q -O /dev/null --retry-connrefused --post-data "json={\"listen_port\":0,\"current_network_interface\":\"lo\"}" http://127.0.0.1:8099/api/v2/app/setPreferences'
       HEALTH_VPN_DURATION_INITIAL: 30s
       LOG_LEVEL: info
     restart: unless-stopped

@@ -23,7 +23,10 @@ userspace WireGuard. Also works with plain `docker compose`.
    `PIA_USER`, `PIA_PASS`, `PIA_REGION`, `PUID`/`PGID`, `TZ`, the mousehole
    password and `MOUSEHOLE_ALLOWED_HOSTS`.
 3. In qBittorrent → Options → Web UI, enable **Bypass authentication for
-   clients on localhost** so the forwarded port can be pushed in.
+   clients on localhost** so the forwarded port can be pushed in. The compose
+   sets both `VPN_PORT_FORWARDING_UP_COMMAND` and `_DOWN_COMMAND`; keep the
+   down command, because qBittorrent only re-binds when the port value
+   changes and a same-server recovery reuses the same port.
 4. Start the project. Logs to look for:
 
 ```

@@ -155,6 +155,9 @@ Unresolved and must be understood before the image is declared done:
   use `-q`.
 - qBittorrent: WebUI port must equal the published host port (Host-header validation)
   and "Bypass authentication for clients on localhost" must be on for the up command.
+  Always pair it with `VPN_PORT_FORWARDING_DOWN_COMMAND` (listen_port 0, interface
+  `lo`): qBittorrent only re-binds when the port value changes, and a same-server
+  recovery hands back the same port (gluetun wiki, vpn-port-forwarding.md).
 - Mousehole only needs the tunnel; it does not need the port. Keep
   `MOUSEHOLE_UPDATE_INTERVAL_SECONDS` high (≥ 3600) and start it last in tests.
 
