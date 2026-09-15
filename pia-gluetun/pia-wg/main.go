@@ -175,6 +175,9 @@ func cmdRegister(args []string) int {
 	if *pinCN != "" && *pinIP != "" && server.IP != *pinIP {
 		logf("pinned server %s changed IP %s -> %s", server.CN, *pinIP, server.IP)
 	}
+	if server.Unlisted() {
+		logf("pinned server %s is not in today's server-list sample, using last known IP %s", server.CN, server.IP)
+	}
 
 	token, err := client.CachedToken(ctx, user, pass)
 	if err != nil {
@@ -189,6 +192,11 @@ func cmdRegister(args []string) int {
 	res, err := client.AddKey(ctx, server.CN, server.IP, token, kp.Public)
 	if err != nil {
 		logf("%v", err)
+		if server.Unlisted() {
+			// Unlisted pin that does not answer: treat as gone so the caller
+			// rolls instead of retrying a dead server.
+			return exitPinnedGone
+		}
 		return exitError
 	}
 

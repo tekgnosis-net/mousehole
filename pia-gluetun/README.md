@@ -56,7 +56,11 @@ pia-entrypoint.sh (PID 1)
   from a file anyway. Env vars are the known-good path.
 - **Server pinning.** `state.json` remembers the server. Cold starts and
   recoveries reconnect to it first (re-registering a fresh key), which keeps the
-  exit IP and the 60-day port signature. A different server is chosen only after
+  exit IP and the 60-day port signature. PIA's server list is a random sample
+  per fetch, so the pinned server is contacted by its last known IP even when
+  it is not in the sample; the TLS check against PIA's CA and the server CN
+  proves it is the right machine. The pin is only dropped when that server
+  does not answer. A different server is chosen only after
   `PIA_SAME_SERVER_ATTEMPTS` failed rounds *and* once
   `PIA_MIN_SERVER_CHANGE_INTERVAL` has elapsed, or immediately if PIA no longer
   lists the server. Every change is logged as

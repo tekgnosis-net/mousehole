@@ -110,9 +110,29 @@ func TestRegisterEndToEnd(t *testing.T) {
 		t.Fatal("a new keypair must be generated on every registration")
 	}
 
-	// Pinned CN disappears from the list -> distinct exit code.
+	// Pinned CN absent from the list sample but with a known IP: still used.
 	f.listCNs = []string{"other.example.com"}
-	code := run([]string{"register", "--region", "test", "--state-dir", dir, "--pin-cn", "example.com",
+	_ = captureStdout(t, func() {
+		code := run([]string{"register", "--region", "test", "--state-dir", dir, "--pin-cn", "example.com", "--pin-ip", "127.0.0.1",
+			"--serverlist-url", f.list.URL, "--token-url", f.token.URL, "--addkey-port", f.addKeyPort()})
+		if code != exitOK {
+			t.Fatalf("unlisted pin with known IP should register, exit %d", code)
+		}
+	})
+	st3, _ := state.Load(filepath.Join(dir, "state.json"))
+	if st3.CN != "example.com" || !st3.ServerChangedAt.Equal(first) {
+		t.Fatalf("unlisted pin changed server: %+v", st3)
+	}
+
+	// Pinned CN absent, known IP does not answer -> distinct exit code.
+	code := run([]string{"register", "--region", "test", "--state-dir", dir, "--pin-cn", "example.com", "--pin-ip", "127.0.0.1",
+		"--serverlist-url", f.list.URL, "--token-url", f.token.URL, "--addkey-port", "1", "--timeout", "2s"})
+	if code != exitPinnedGone {
+		t.Fatalf("expected exit %d for dead unlisted pin, got %d", exitPinnedGone, code)
+	}
+
+	// Pinned CN absent and no IP known -> distinct exit code.
+	code = run([]string{"register", "--region", "test", "--state-dir", dir, "--pin-cn", "example.com",
 		"--serverlist-url", f.list.URL, "--token-url", f.token.URL, "--addkey-port", f.addKeyPort()})
 	if code != exitPinnedGone {
 		t.Fatalf("expected exit %d for vanished pin, got %d", exitPinnedGone, code)

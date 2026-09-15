@@ -164,6 +164,12 @@ Unresolved and must be understood before the image is declared done:
   session and the response never comes back). Observed live 2026-09-16 02:04 AEST.
 - Endpoint env names are `WIREGUARD_ENDPOINT_IP`/`_PORT`; `VPN_ENDPOINT_*` are deprecated
   and warn twice.
+- PIA's `vpninfo/servers/v6` returns a **small random sample** of each region's servers
+  on every fetch. A pinned CN is usually absent from the next fetch; that is not
+  delisting. pia-wg therefore registers against the pinned IP/CN directly (TLS CN check
+  proves identity) and only treats the pin as gone when addKey to it fails. Observed
+  2026-09-16: two consecutive starts "lost" their pin and rolled, which changed the exit
+  IP and tripped MAM's `429 Last change too recent`.
 - qBittorrent: WebUI port must equal the published host port (Host-header validation)
   and "Bypass authentication for clients on localhost" must be on for the up command.
   Always pair it with `VPN_PORT_FORWARDING_DOWN_COMMAND` (listen_port 0, interface

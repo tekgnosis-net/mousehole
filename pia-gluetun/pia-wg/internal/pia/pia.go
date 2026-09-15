@@ -133,7 +133,13 @@ func GenerateKeypair() (Keypair, error) {
 type Server struct {
 	IP string `json:"ip"`
 	CN string `json:"cn"`
+	// unlisted is set when a pinned server was not in the current sample
+	// of the server list and its last known IP was used instead.
+	unlisted bool
 }
+
+// Unlisted reports whether the server came from a pin rather than the list.
+func (s Server) Unlisted() bool { return s.unlisted }
 
 // Region is the subset of a PIA region we need.
 type Region struct {
@@ -222,6 +228,12 @@ var ErrPinnedServerGone = errors.New("pinned server is no longer in the server l
 func IsPinnedServerGone(err error) bool { return errors.Is(err, ErrPinnedServerGone) }
 
 // PickServer selects a WireGuard server in region according to p.
+//
+// PIA's server list is a small random sample of each region on every fetch,
+// so a pinned server is usually absent from it. A pin with a known IP is
+// therefore honoured even when unlisted: the addKey TLS check against PIA's
+// CA and the CN guarantees the peer's identity. The list is still consulted
+// first so a server whose IP changed is followed.
 func PickServer(regions Regions, region string, p Pick) (Server, error) {
 	r, ok := regions[region]
 	if !ok {
@@ -230,16 +242,19 @@ func PickServer(regions Regions, region string, p Pick) (Server, error) {
 	if p.PortForwardOnly && !r.PortForward {
 		return Server{}, fmt.Errorf("region %q does not support port forwarding", region)
 	}
-	if len(r.WG) == 0 {
-		return Server{}, fmt.Errorf("region %q has no WireGuard servers", region)
-	}
 	if p.PinCN != "" {
 		for _, s := range r.WG {
 			if strings.EqualFold(s.CN, p.PinCN) {
 				return s, nil
 			}
 		}
+		if p.PinIP != "" {
+			return Server{CN: p.PinCN, IP: p.PinIP, unlisted: true}, nil
+		}
 		return Server{}, fmt.Errorf("%w: %s", ErrPinnedServerGone, p.PinCN)
+	}
+	if len(r.WG) == 0 {
+		return Server{}, fmt.Errorf("region %q has no WireGuard servers", region)
 	}
 	candidates := make([]Server, 0, len(r.WG))
 	for _, s := range r.WG {

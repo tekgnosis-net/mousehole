@@ -80,7 +80,22 @@ func TestPickServer(t *testing.T) {
 			t.Fatalf("got %+v", s)
 		}
 	})
-	t.Run("pinned CN gone", func(t *testing.T) {
+	t.Run("pinned CN unlisted but IP known is honoured", func(t *testing.T) {
+		s, err := PickServer(regions, "swiss", Pick{PinCN: "zzz", PinIP: "9.9.9.9", PortForwardOnly: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.CN != "zzz" || s.IP != "9.9.9.9" || !s.Unlisted() {
+			t.Fatalf("got %+v", s)
+		}
+	})
+	t.Run("pinned CN listed wins over pinned IP", func(t *testing.T) {
+		s, _ := PickServer(regions, "swiss", Pick{PinCN: "a", PinIP: "9.9.9.9"})
+		if s.IP != "10.0.0.1" || s.Unlisted() {
+			t.Fatalf("got %+v", s)
+		}
+	})
+	t.Run("pinned CN gone without IP", func(t *testing.T) {
 		_, err := PickServer(regions, "swiss", Pick{PinCN: "zzz", PortForwardOnly: true})
 		if err == nil || !IsPinnedServerGone(err) {
 			t.Fatalf("expected ErrPinnedServerGone, got %v", err)
