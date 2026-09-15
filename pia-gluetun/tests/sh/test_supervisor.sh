@@ -144,9 +144,10 @@ touch "$FAKE_DIR/piaportforward.json"
 : >"$FAKE_DIR/calls.log"
 echo 0 >"$FAKE_DIR/health"
 wait_for "register excluded current server" 10 calls_has '--exclude-cn new-server'
-wait_for "server change logged" 5 log_has 'server change: new-server'
+# Wait on the durable state, not the log line: the log is written last.
+wait_for "new server chosen" 5 grep -q "PIA_WG_CN='new-server-alt'" "$FAKE_DIR/run/register.env"
+wait_for "server change logged" 5 log_has 'server change: new-server (10.0.0.2'
 check "pf signature dropped on server change" 0 "$([ -f "$FAKE_DIR/piaportforward.json" ] && echo 1 || echo 0)"
-check "new server chosen" new-server-alt "$(sed -n "s/^PIA_WG_CN='\(.*\)'/\1/p" "$FAKE_DIR/run/register.env")"
 stop
 
 echo "--- recovery: change interval holds the server"

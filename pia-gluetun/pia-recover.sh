@@ -50,10 +50,12 @@ apply_new() {
 	new_cn=$PIA_WG_CN
 	new_ip=$PIA_WG_SERVER_IP
 	if [ "$new_cn" != "$cur_cn" ]; then
-		pia_log $C "server change: $cur_cn ($cur_ip, exit ip ${last_ip:-unknown}) -> $new_cn ($new_ip); dropping old port-forward signature"
 		rm -f "$pf_file"
 	fi
 	mv "$run_dir/register.env.new" "$run_dir/register.env"
+	if [ "$new_cn" != "$cur_cn" ]; then
+		pia_log $C "server change: $cur_cn ($cur_ip, exit ip ${last_ip:-unknown}) -> $new_cn ($new_ip); dropped old port-forward signature"
+	fi
 	if [ "$mode" = api ]; then
 		if pia-wg apply --control "$control" --api-key-file "$run_dir/apikey" --state-dir "$state_dir"; then
 			return 0
