@@ -61,7 +61,7 @@ pia-entrypoint.sh (PID 1)
   it is not in the sample; the TLS check against PIA's CA and the server CN
   proves it is the right machine. The pin is only dropped when that server
   does not answer. A different server is chosen only after
-  `PIA_SAME_SERVER_ATTEMPTS` failed rounds *and* once
+  `PIA_SAME_SERVER_ATTEMPTS` failed rounds _and_ once
   `PIA_MIN_SERVER_CHANGE_INTERVAL` has elapsed, or immediately if PIA no longer
   lists the server. Every change is logged as
   `server change: <old cn> (<old ip>, exit ip <ip>) -> <new cn> (<new ip>)` and
@@ -78,8 +78,9 @@ pia-entrypoint.sh (PID 1)
   `PIA_BYPASS_MARK` (51820, the mark gluetun's own WireGuard socket uses, so
   its policy rule routes them via the real interface) and resolves names
   through `PIA_BYPASS_DNS` over marked sockets. Before each recovery the loop
-  inserts three iptables rules letting marked packets out to TCP 443, TCP
-  1337 and UDP 53. Only PIA's API and DNS ever use this path; it is the same
+  inserts four iptables rules letting marked packets out to TCP 443, TCP
+  1337 and TCP/UDP 53 (DNS goes over TCP so a dead server fails fast). Only
+  PIA's API and DNS ever use this path; it is the same
   traffic a cold start sends before the tunnel exists.
 - **A same-server re-registration always replaces the live session.** PIA
   keeps one WireGuard key per account per server, so the moment `addKey`
@@ -92,25 +93,25 @@ pia-entrypoint.sh (PID 1)
 
 Every threshold is an env var read at start with a default and a clamp.
 
-| Variable | Default | Clamp | Meaning |
-| --- | --- | --- | --- |
-| `PIA_USER` / `PIA_PASS` | required | | PIA credentials. `PIA_USER_FILE` / `PIA_PASS_FILE` read from a file instead. Also used by gluetun for port forwarding. |
-| `PIA_REGION` | required | | PIA region id (`swiss`, `ca_toronto`, `de_berlin`…). List: `curl -s https://serverlist.piaservers.net/vpninfo/servers/v6 \| head -1 \| jq -r '.regions[] \| select(.port_forward) \| .id'`. |
-| `PIA_PORT_FORWARDING` | `on` | on/off | Sets gluetun's `VPN_PORT_FORWARDING`. Set explicitly because the gluetun base image defaults it to `off`. |
-| `PIA_PORT_FORWARD_ONLY` | `on` | on/off | Refuse regions that do not offer port forwarding. |
-| `PIA_BYPASS_MARK` | `51820` | 0–4294967295 | Socket mark that routes recovery traffic around the tunnel. `0` disables the bypass (recovery then only works while the tunnel is up, which defeats the point). |
-| `PIA_BYPASS_DNS` | `1.1.1.1:53,8.8.8.8:53` | host:port list | Plain-DNS servers used over marked sockets by `pia-wg`. Only PIA hostnames are resolved this way. |
-| `PIA_REQUIRE_PORT_FORWARD` | `on` | on/off | Treat "no forwarded port" as unhealthy. Turn off if you only need the tunnel. |
-| `PIA_CHECK_INTERVAL` | `60` | 1–3600 s | How often the loop probes the control server. |
-| `PIA_FAIL_THRESHOLD` | `3` | 1–100 | Consecutive unhealthy probes before recovery starts. |
-| `PIA_SAME_SERVER_ATTEMPTS` | `2` | 0–10 | Recovery rounds on the current server before a different one is considered. |
-| `PIA_MIN_SERVER_CHANGE_INTERVAL` | `3600` | 0–604800 s | Minimum time between server changes (MAM rate-limits IP changes). Ignored when PIA delists the server. |
-| `PIA_STARTUP_GRACE` | `120` | 0–3600 s | Quiet period after boot and after each recovery before probing resumes. |
-| `PIA_RECOVERY_MODE` | `api` | api/restart | `api` = `PUT /v1/vpn/settings`; `restart` = always restart the gluetun child in place. `api` falls back to `restart` if the PUT fails. |
-| `PIA_REGISTER_ATTEMPTS` | `5` | 1–20 | Boot-time key registration retries (5 s × attempt backoff). |
-| `PIA_REGISTER_TIMEOUT` | `30` | 5–120 s | Per-request timeout talking to PIA. |
-| `PIA_STATE_DIR` | `/gluetun/pia` | | Where `state.json` and the 24 h token cache live (persist it with the `/gluetun` volume). |
-| `HTTP_CONTROL_SERVER_ADDRESS` | `:8000` | | gluetun's; the loop derives its port from it. The compose example uses `:8009`. |
+| Variable                         | Default                 | Clamp          | Meaning                                                                                                                                                                                     |
+| -------------------------------- | ----------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PIA_USER` / `PIA_PASS`          | required                |                | PIA credentials. `PIA_USER_FILE` / `PIA_PASS_FILE` read from a file instead. Also used by gluetun for port forwarding.                                                                      |
+| `PIA_REGION`                     | required                |                | PIA region id (`swiss`, `ca_toronto`, `de_berlin`…). List: `curl -s https://serverlist.piaservers.net/vpninfo/servers/v6 \| head -1 \| jq -r '.regions[] \| select(.port_forward) \| .id'`. |
+| `PIA_PORT_FORWARDING`            | `on`                    | on/off         | Sets gluetun's `VPN_PORT_FORWARDING`. Set explicitly because the gluetun base image defaults it to `off`.                                                                                   |
+| `PIA_PORT_FORWARD_ONLY`          | `on`                    | on/off         | Refuse regions that do not offer port forwarding.                                                                                                                                           |
+| `PIA_BYPASS_MARK`                | `51820`                 | 0–4294967295   | Socket mark that routes recovery traffic around the tunnel. `0` disables the bypass (recovery then only works while the tunnel is up, which defeats the point).                             |
+| `PIA_BYPASS_DNS`                 | `1.1.1.1:53,8.8.8.8:53` | host:port list | DNS servers (TCP) used over marked sockets by `pia-wg`. Only PIA hostnames are resolved this way.                                                                                           |
+| `PIA_REQUIRE_PORT_FORWARD`       | `on`                    | on/off         | Treat "no forwarded port" as unhealthy. Turn off if you only need the tunnel.                                                                                                               |
+| `PIA_CHECK_INTERVAL`             | `60`                    | 1–3600 s       | How often the loop probes the control server.                                                                                                                                               |
+| `PIA_FAIL_THRESHOLD`             | `3`                     | 1–100          | Consecutive unhealthy probes before recovery starts.                                                                                                                                        |
+| `PIA_SAME_SERVER_ATTEMPTS`       | `2`                     | 0–10           | Recovery rounds on the current server before a different one is considered.                                                                                                                 |
+| `PIA_MIN_SERVER_CHANGE_INTERVAL` | `3600`                  | 0–604800 s     | Minimum time between server changes (MAM rate-limits IP changes). Ignored when PIA delists the server.                                                                                      |
+| `PIA_STARTUP_GRACE`              | `120`                   | 0–3600 s       | Quiet period after boot and after each recovery before probing resumes.                                                                                                                     |
+| `PIA_RECOVERY_MODE`              | `api`                   | api/restart    | `api` = `PUT /v1/vpn/settings`; `restart` = always restart the gluetun child in place. `api` falls back to `restart` if the PUT fails.                                                      |
+| `PIA_REGISTER_ATTEMPTS`          | `5`                     | 1–20           | Boot-time key registration retries (5 s × attempt backoff).                                                                                                                                 |
+| `PIA_REGISTER_TIMEOUT`           | `30`                    | 5–120 s        | Per-request timeout talking to PIA.                                                                                                                                                         |
+| `PIA_STATE_DIR`                  | `/gluetun/pia`          |                | Where `state.json` and the 24 h token cache live (persist it with the `/gluetun` volume).                                                                                                   |
+| `HTTP_CONTROL_SERVER_ADDRESS`    | `:8000`                 |                | gluetun's; the loop derives its port from it. The compose example uses `:8009`.                                                                                                             |
 
 All other gluetun variables work unchanged, for example
 `DNS_UPSTREAM_RESOLVERS: "cloudflare,quad9,google"` in the compose example.
@@ -121,13 +122,13 @@ to turn port forwarding off).
 
 ## Files inside the container
 
-| Path | Purpose |
-| --- | --- |
-| `/gluetun/pia/state.json` | Last registration (server, keys, timestamps), mode 600. Delete it to force a new server. |
-| `/gluetun/pia/token.json` | Cached PIA token (24 h), mode 600. |
-| `/gluetun/piaportforward.json` | gluetun's port signature, bound to the server. Deleted automatically on server change. |
-| `/run/pia/register.env` | Current registration as shell assignments (what gluetun is running with). |
-| `/run/pia/apikey`, `/run/pia/auth.toml` | Boot-time control-server credentials. |
+| Path                                    | Purpose                                                                                  |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `/gluetun/pia/state.json`               | Last registration (server, keys, timestamps), mode 600. Delete it to force a new server. |
+| `/gluetun/pia/token.json`               | Cached PIA token (24 h), mode 600.                                                       |
+| `/gluetun/piaportforward.json`          | gluetun's port signature, bound to the server. Deleted automatically on server change.   |
+| `/run/pia/register.env`                 | Current registration as shell assignments (what gluetun is running with).                |
+| `/run/pia/apikey`, `/run/pia/auth.toml` | Boot-time control-server credentials.                                                    |
 
 ## Development
 

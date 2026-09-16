@@ -2,6 +2,7 @@ package pia
 
 import (
 	"context"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,45 +12,53 @@ import (
 	"time"
 )
 
-// fakeDNS answers every A query with 127.0.0.1 and counts queries.
+// fakeDNS answers every A query with 127.0.0.1 over TCP (length-prefixed,
+// as the bypass resolver always uses TCP) and counts queries.
 func fakeDNS(t *testing.T) (addr string, queries *int) {
 	t.Helper()
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = pc.Close() })
+	t.Cleanup(func() { _ = ln.Close() })
 	n := 0
 	queries = &n
 	go func() {
-		buf := make([]byte, 512)
 		for {
-			ln, from, err := pc.ReadFrom(buf)
+			conn, err := ln.Accept()
 			if err != nil {
 				return
 			}
-			n++
-			q := buf[:ln]
-			if len(q) < 12 {
-				continue
-			}
-			// Question ends after the name (null byte) + 4 bytes type/class.
-			end := 12
-			for end < len(q) && q[end] != 0 {
-				end += int(q[end]) + 1
-			}
-			end += 1 + 4
-			if end > len(q) {
-				continue
-			}
-			resp := make([]byte, 0, end+16)
-			resp = append(resp, q[0], q[1], 0x81, 0x80, 0, 1, 0, 1, 0, 0, 0, 0)
-			resp = append(resp, q[12:end]...)
-			resp = append(resp, 0xc0, 0x0c, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 127, 0, 0, 1)
-			_, _ = pc.WriteTo(resp, from)
+			go func(c net.Conn) {
+				defer c.Close()
+				hdr := make([]byte, 2)
+				if _, err := io.ReadFull(c, hdr); err != nil {
+					return
+				}
+				q := make([]byte, int(hdr[0])<<8|int(hdr[1]))
+				if _, err := io.ReadFull(c, q); err != nil || len(q) < 12 {
+					return
+				}
+				n++
+				// Question ends after the name (null byte) + 4 bytes type/class.
+				end := 12
+				for end < len(q) && q[end] != 0 {
+					end += int(q[end]) + 1
+				}
+				end += 1 + 4
+				if end > len(q) {
+					return
+				}
+				resp := make([]byte, 0, end+16)
+				resp = append(resp, q[0], q[1], 0x81, 0x80, 0, 1, 0, 1, 0, 0, 0, 0)
+				resp = append(resp, q[12:end]...)
+				resp = append(resp, 0xc0, 0x0c, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 127, 0, 0, 1)
+				out := append([]byte{byte(len(resp) >> 8), byte(len(resp))}, resp...)
+				_, _ = c.Write(out)
+			}(conn)
 		}
 	}()
-	return pc.LocalAddr().String(), queries
+	return ln.Addr().String(), queries
 }
 
 func TestBypassResolverUsesConfiguredDNS(t *testing.T) {
@@ -59,14 +68,18 @@ func TestBypassResolverUsesConfiguredDNS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	ips, err := d.Resolver.LookupHost(ctx, "token.pia.test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ips) != 1 || ips[0] != "127.0.0.1" {
-		t.Fatalf("ips %v", ips)
+	// Repeat so the random start lands on the dead server at least once;
+	// failover must be deterministic regardless.
+	for i := 0; i < 8; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ips, err := d.Resolver.LookupHost(ctx, "token.pia.test")
+		cancel()
+		if err != nil {
+			t.Fatalf("iteration %d: %v", i, err)
+		}
+		if len(ips) != 1 || ips[0] != "127.0.0.1" {
+			t.Fatalf("ips %v", ips)
+		}
 	}
 	if *queries == 0 {
 		t.Fatal("fake DNS was not consulted")

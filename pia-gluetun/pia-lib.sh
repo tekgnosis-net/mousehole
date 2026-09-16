@@ -111,7 +111,7 @@ pia_iptables() {
 }
 
 # pia_allow_bypass MARK -> makes sure packets carrying fwmark MARK may leave
-# for PIA's API (TCP 443, TCP 1337) and DNS (UDP 53) despite gluetun's
+# for PIA's API (TCP 443, TCP 1337) and DNS (TCP+UDP 53) despite gluetun's
 # firewall. Idempotent. gluetun's routing rule already sends marked packets
 # around the tunnel; this only opens the OUTPUT chain for them.
 pia_allow_bypass() {
@@ -122,7 +122,7 @@ pia_allow_bypass() {
 		return 1
 	}
 	_added=0
-	for _spec in "-p tcp --dport 443" "-p tcp --dport 1337" "-p udp --dport 53"; do
+	for _spec in "-p tcp --dport 443" "-p tcp --dport 1337" "-p tcp --dport 53" "-p udp --dport 53"; do
 		# shellcheck disable=SC2086  # _spec is a fixed word list
 		if ! "$_ipt" -C OUTPUT -m mark --mark "$_mark" $_spec -j ACCEPT 2>/dev/null; then
 			# shellcheck disable=SC2086
@@ -130,5 +130,5 @@ pia_allow_bypass() {
 			_added=1
 		fi
 	done
-	[ "$_added" -eq 0 ] || pia_log pia-lib "firewall: allowed fwmark $_mark to PIA (tcp 443, tcp 1337, udp 53) via $_ipt"
+	[ "$_added" -eq 0 ] || pia_log pia-lib "firewall: allowed fwmark $_mark to PIA (tcp 443, tcp 1337, tcp/udp 53) via $_ipt"
 }

@@ -118,7 +118,7 @@ wait_for "gluetun started" 5 starts_is 1
 touch "$FAKE_DIR/piaportforward.json"
 echo 0 >"$FAKE_DIR/health"
 wait_for "re-registered pinned to current server" 10 calls_has '--pin-cn new-server'
-check "bypass firewall rules opened before registering" 3 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
+check "bypass firewall rules opened before registering" 4 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
 check "recovery registration bypasses tunnel" 1 "$(grep -c -- '--bypass-mark 51820 .*--pin-cn new-server' "$FAKE_DIR/calls.log")"
 wait_for "apply called" 5 calls_has '^apply '
 sleep 0.5

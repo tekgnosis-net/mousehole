@@ -87,10 +87,10 @@ export FAKE_DIR
 PATH="$ROOT/tests/fakes:$PATH"
 check "iptables backend detected" iptables-legacy "$(pia_iptables)"
 pia_allow_bypass 51820 2>/dev/null
-check "three bypass rules inserted" 3 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
-check "rules cover 443, 1337 and dns" 3 "$(grep -c -- '--dport 443\|--dport 1337\|--dport 53' "$FAKE_DIR/iptables.rules")"
+check "four bypass rules inserted" 4 "$(grep -c '^iptables -I OUTPUT 1 -m mark --mark 51820' "$FAKE_DIR/calls.log")"
+check "rules cover 443, 1337 and dns" 4 "$(grep -c -- '--dport 443\|--dport 1337\|--dport 53' "$FAKE_DIR/iptables.rules")"
 pia_allow_bypass 51820 2>/dev/null
-check "second call is idempotent" 3 "$(grep -c '^iptables -I' "$FAKE_DIR/calls.log")"
+check "second call is idempotent" 4 "$(grep -c '^iptables -I' "$FAKE_DIR/calls.log")"
 : >"$FAKE_DIR/calls.log"
 pia_allow_bypass 0
 check "mark 0 touches nothing" 0 "$(wc -l <"$FAKE_DIR/calls.log")"

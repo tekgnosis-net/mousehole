@@ -37,7 +37,7 @@ These were all tried and are documented here so they are not proposed again.
    `docker restart gluetun`. Three problems:
    - `SERVER_NAMES` is a gluetun env var bound to the chosen server's TLS CN. A
      `docker restart` cannot change env, and pia-wg-refresh's fix requires `.env`.
-   - Its failure hook fires *before* the new config exists; its recovery hook needs
+   - Its failure hook fires _before_ the new config exists; its recovery hook needs
      port forwarding to be up, which is the thing that's broken → infinite regen loop,
      new server each time, new exit IP each time.
    - Every gluetun restart/recreate orphans containers using
@@ -52,13 +52,13 @@ These were all tried and are documented here so they are not proposed again.
 Ordered by priority:
 
 1. **Never change the container's network namespace to recover.** Key regeneration and
-   VPN reconnection must happen *inside* the running gluetun process/container so
+   VPN reconnection must happen _inside_ the running gluetun process/container so
    `network_mode: service:` dependents are never orphaned.
 2. **Compute `SERVER_NAMES` in-process** from the generated config. It must never be
    a value a human maintains in compose.
 3. **Generate keys immediately before connecting** (seconds, not minutes) on first
    start and on every recovery.
-4. **Bound exit-IP churn.** Prefer reconnecting to the *same* server (re-register key,
+4. **Bound exit-IP churn.** Prefer reconnecting to the _same_ server (re-register key,
    keep the 60-day port signature) before selecting a new one. Expose a minimum
    interval between server changes.
 5. **Zero host coupling.** No Docker socket, no compose editing, no `.env`. All
@@ -92,7 +92,7 @@ in-container loop:
 - **Runtime recovery**: gluetun's control server has `PUT /v1/vpn/settings` (verify
   exact schema for the pinned tag in
   https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md)
-  which applies new provider/WireGuard settings and restarts the VPN loop *without*
+  which applies new provider/WireGuard settings and restarts the VPN loop _without_
   restarting the container. A loop inside the container (started by the shim,
   `wait`ed alongside gluetun) should:
   1. Poll `/v1/publicip/ip` and `/v1/portforward` on `127.0.0.1:8000`.
@@ -103,7 +103,7 @@ in-container loop:
   3. If the same server fails M times, allow a region roll, subject to the min
      server-change interval.
 - If `PUT /v1/vpn/settings` cannot carry `server_names`/port-forward settings on the
-  pinned tag, fall back to `exec`-restarting gluetun *inside* the container (PID 1
+  pinned tag, fall back to `exec`-restarting gluetun _inside_ the container (PID 1
   re-exec keeps the netns). Document which path is used.
 - `auth/config.toml` must open the routes the loop uses; ship a default and merge
   with any user-provided file.

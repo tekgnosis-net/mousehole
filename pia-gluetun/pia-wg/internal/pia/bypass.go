@@ -48,13 +48,15 @@ func (b Bypass) Dialer(timeout time.Duration) (*net.Dialer, error) {
 		inner := &net.Dialer{Timeout: 5 * time.Second, Control: d.Control}
 		d.Resolver = &net.Resolver{
 			PreferGo: true,
-			Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-				// Random start, then walk the list so one dead server does
-				// not stall every lookup.
+			Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				// Always DNS over TCP: a dead server then fails at connect
+				// time, so failover is deterministic (UDP cannot fail here).
+				// Go's resolver picks stream framing from the conn type.
+				// Random start, then walk the list.
 				start := mathrand.IntN(len(servers))
 				var errs []error
 				for i := range servers {
-					conn, err := inner.DialContext(ctx, network, servers[(start+i)%len(servers)])
+					conn, err := inner.DialContext(ctx, "tcp", servers[(start+i)%len(servers)])
 					if err == nil {
 						return conn, nil
 					}
